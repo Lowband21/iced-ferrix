@@ -24,6 +24,9 @@ svg = ["iced_graphics/svg", "resvg/text"]
 web-colors = ["iced_graphics/web-colors"]
 webgl = ["wgpu/webgl"]
 strict-assertions = []
+# Enable 10-bit and HDR surface formats when available
+hdr = []
+prefer_10bit = []
 
 [dependencies]
 iced_debug.workspace = true

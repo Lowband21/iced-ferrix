@@ -105,18 +105,71 @@ impl Compositor {
             .and_then(|surface| {
                 let capabilities = surface.get_capabilities(&adapter);
 
-                let mut formats = capabilities.formats.iter().copied();
+                let formats: Vec<_> = capabilities.formats.iter().copied().collect();
 
-                log::info!("Available formats: {formats:#?}");
+                log::info!("Available surface formats: {formats:#?}");
+                eprintln!("=== ICED SURFACE FORMATS ===");
+                eprintln!("Available formats: {:?}", formats);
+                eprintln!("===========================");
 
-                let format = if color::GAMMA_CORRECTION {
-                    formats.find(wgpu::TextureFormat::is_srgb)
+                // Helper function to get bit depth priority for a format
+                fn format_priority(format: wgpu::TextureFormat, prefer_hdr: bool) -> u8 {
+                    match format {
+                        // 10-bit formats (best for UI with extended color)
+                        wgpu::TextureFormat::Rgb10a2Unorm => if prefer_hdr { 120 } else { 140 },
+                        wgpu::TextureFormat::Rgb10a2Uint => if prefer_hdr { 110 } else { 130 },
+                        // 16-bit float formats (full HDR, can look washed out for SDR content)
+                        wgpu::TextureFormat::Rgba16Float => if prefer_hdr { 160 } else { 100 },
+                        // 11-11-10 float format (HDR)
+                        wgpu::TextureFormat::Rg11b10Ufloat => if prefer_hdr { 150 } else { 90 },
+                        // 16-bit normalized (good middle ground)
+                        wgpu::TextureFormat::Rgba16Unorm => 95,
+                        // 8-bit formats (standard)
+                        _ => 80,
+                    }
+                }
+
+                let format = if cfg!(feature = "prefer_10bit") || cfg!(feature = "hdr") {
+                    // When 10-bit or HDR is requested, prefer higher bit depth formats
+                    let prefer_hdr = cfg!(feature = "hdr");
+                    let mut best_format = None;
+                    let mut best_priority = 0;
+                    
+                    for &fmt in &formats {
+                        let is_srgb = wgpu::TextureFormat::is_srgb(&fmt);
+                        let matches_gamma = if color::GAMMA_CORRECTION {
+                            is_srgb
+                        } else {
+                            !is_srgb
+                        };
+                        
+                        if matches_gamma {
+                            let priority = format_priority(fmt, prefer_hdr);
+                            if priority > best_priority {
+                                best_priority = priority;
+                                best_format = Some(fmt);
+                            }
+                        }
+                    }
+                    
+                    best_format.or_else(|| {
+                        // Fallback: pick any high bit depth format if no exact gamma match
+                        formats.iter().copied()
+                            .filter(|&fmt| format_priority(fmt, prefer_hdr) > 80)
+                            .max_by_key(|&fmt| format_priority(fmt, prefer_hdr))
+                    })
                 } else {
-                    formats.find(|format| !wgpu::TextureFormat::is_srgb(format))
+                    // Original behavior: just find first matching format
+                    let mut formats_iter = formats.iter().copied();
+                    if color::GAMMA_CORRECTION {
+                        formats_iter.find(wgpu::TextureFormat::is_srgb)
+                    } else {
+                        formats_iter.find(|format| !wgpu::TextureFormat::is_srgb(format))
+                    }
                 };
 
                 let format = format.or_else(|| {
-                    log::warn!("No format found!");
+                    log::warn!("No suitable format found!");
 
                     capabilities.formats.first().copied()
                 });
@@ -144,6 +197,10 @@ impl Compositor {
         log::info!(
             "Selected format: {format:?} with alpha mode: {alpha_mode:?}"
         );
+        eprintln!("=== ICED SELECTED FORMAT ===");
+        eprintln!("Selected surface format: {:?}", format);
+        eprintln!("Selected alpha mode: {:?}", alpha_mode);
+        eprintln!("============================");
 
         #[cfg(target_arch = "wasm32")]
         let limits = [wgpu::Limits::downlevel_webgl2_defaults()

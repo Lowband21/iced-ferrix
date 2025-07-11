@@ -75,6 +75,10 @@ strict-assertions = ["iced_renderer/strict-assertions"]
 unconditional-rendering = ["iced_winit/unconditional-rendering"]
 # Enables support for the `sipper` library
 sipper = ["iced_runtime/sipper"]
+# Enable 10-bit surface formats when available (requires wgpu backend)
+prefer_10bit = ["iced_renderer/prefer_10bit"]
+# Enable HDR surface formats when available (requires wgpu backend)
+hdr = ["iced_renderer/hdr"]
 
 [dependencies]
 iced_debug.workspace = true
