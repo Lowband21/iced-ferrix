@@ -460,6 +460,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "72b3254f16251a8381aa12e40e3c4d2f0199f8c6508fbecb9d91f575e0fbb8c6"
 
 [[package]]
+name = "batched_image"
+version = "0.1.0"
+dependencies = [
+ "bytemuck",
+ "iced",
+ "iced_wgpu",
+]
+
+[[package]]
 name = "bezier_tool"
 version = "0.1.0"
 dependencies = [
@@ -2628,6 +2637,7 @@ dependencies = [
  "iced_graphics",
  "log",
  "lyon",
+ "pollster 0.3.0",
  "resvg",
  "rustc-hash 2.1.1",
  "thiserror 2.0.16",
@@ -4487,6 +4497,12 @@ dependencies = [
 
 [[package]]
 name = "pollster"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "22686f4785f02a4fcc856d3b3bb19bf6c8160d103f7a99cc258bddd0251dc7f2"
+
+[[package]]
+name = "pollster"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2f3a9f18d041e6d0e102a0a46750538147e5e8992d3b4873aaafee2520b00ce3"
@@ -5006,7 +5022,7 @@ dependencies = [
  "objc2-app-kit 0.3.1",
  "objc2-core-foundation",
  "objc2-foundation 0.3.1",
- "pollster",
+ "pollster 0.4.0",
  "raw-window-handle 0.6.2",
  "urlencoding",
  "wasm-bindgen",

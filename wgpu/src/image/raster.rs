@@ -123,4 +123,17 @@ impl Cache {
     fn contains(&self, handle: &image::Handle) -> bool {
         self.map.contains_key(&handle.id())
     }
+
+    pub fn atlas_entry(
+        &mut self,
+        handle: &image::Handle,
+    ) -> Option<&atlas::Entry> {
+        // Track usage so trim keeps atlas allocations that were read this frame.
+        let _ = self.hits.insert(handle.id());
+
+        self.map.get(&handle.id()).and_then(|memory| match memory {
+            Memory::Device(entry) => Some(entry),
+            _ => None,
+        })
+    }
 }

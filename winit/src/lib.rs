@@ -17,7 +17,7 @@
 #![doc(
     html_logo_url = "https://raw.githubusercontent.com/iced-rs/iced/9ab6923e943f784985e9ef9ca28b10278297225d/docs/logo.svg"
 )]
-#![cfg_attr(docsrs, feature(doc_auto_cfg))]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 pub use iced_program as program;
 pub use program::core;
 pub use program::graphics;
@@ -28,6 +28,9 @@ pub use winit;
 
 pub mod clipboard;
 pub mod conversion;
+
+/// Utilities for integrating with Wayland compositors when the `wayland-hack` feature is enabled.
+pub mod wayland_integration;
 
 mod error;
 mod proxy;
@@ -780,6 +783,23 @@ async fn run_instance<P>(
                             continue;
                         };
 
+                        #[cfg(all(
+                            target_os = "linux",
+                            feature = "wayland-hack"
+                        ))]
+                        let wayland_integration =
+                            window.wayland_integration().cloned();
+
+                        #[cfg(all(
+                            target_os = "linux",
+                            feature = "wayland-hack"
+                        ))]
+                        if wayland_integration.is_some() {
+                            crate::wayland_integration::wayland::set_current_wayland_integration(
+                                wayland_integration.clone(),
+                            );
+                        }
+
                         let physical_size = window.state.physical_size();
 
                         if physical_size.width == 0 || physical_size.height == 0
@@ -867,7 +887,19 @@ async fn run_instance<P>(
                             &mut window.surface,
                             window.state.viewport(),
                             window.state.background_color(),
-                            || window.raw.pre_present_notify(),
+                            || {
+                                #[cfg(all(
+                                    target_os = "linux",
+                                    feature = "wayland-hack"
+                                ))]
+                                if let Some(integration) =
+                                    wayland_integration.as_ref()
+                                {
+                                    integration.trigger_pre_commit_hooks();
+                                }
+
+                                window.raw.pre_present_notify();
+                            },
                         ) {
                             Ok(()) => {
                                 present_span.finish();
@@ -894,6 +926,11 @@ async fn run_instance<P>(
                                 }
                             },
                         }
+
+                        #[cfg(all(target_os = "linux", feature = "wayland-hack"))]
+                        crate::wayland_integration::wayland::set_current_wayland_integration(
+                            None,
+                        );
                     }
                     event::Event::WindowEvent {
                         event: window_event,

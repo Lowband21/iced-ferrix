@@ -1,5 +1,5 @@
-pub(crate) mod cache;
-pub(crate) use cache::Cache;
+mod cache;
+pub use cache::{AtlasRegion, Cache};
 
 mod atlas;
 

@@ -97,6 +97,10 @@ impl Atlas {
         self.layers.len()
     }
 
+    pub fn bind_group_layout(&self) -> Arc<wgpu::BindGroupLayout> {
+        Arc::clone(&self.texture_layout)
+    }
+
     pub fn upload(
         &mut self,
         device: &wgpu::Device,
